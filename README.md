@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # NestJS Proxy Server
 
 🚀 **Proxy Server mạnh mẽ được xây dựng bằng NestJS** - Chuyển tiếp request dựa trên project name với custom headers và giao diện quản lý thân thiện.
@@ -320,3 +321,6 @@ Nếu bạn gặp vấn đề hoặc có câu hỏi, vui lòng:
 ---
 
 **Được xây dựng với ❤️ bằng NestJS**
+=======
+# haproxy
+>>>>>>> 0613176dc3279d528c40790e16706eedbb6be290
