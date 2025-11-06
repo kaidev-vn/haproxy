@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .config-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid #dee2e6;
+        }
+        .config-card.enabled {
+            border-left-color: #28a745;
+        }
+        .config-card.disabled {
+            border-left-color: #dc3545;
+            opacity: 0.7;
+        }
+        .config-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .status-enabled {
+            background-color: #28a745;
+        }
+        .status-disabled {
+            background-color: #dc3545;
+        }
+        .header-stats {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .modal-header {
+            background-color: #f8f9fa;
+        }
+        .btn-test {
+            position: relative;
+        }
+        .spinner-border-sm {
+            width: 1rem;
+            height: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-exchange-alt me-2"></i>
+                NestJS Proxy Server
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/">
+                    <i class="fas fa-home me-1"></i>
+                    Trang chủ
+                </a>
+                <a class="nav-link" href="/health">
+                    <i class="fas fa-heartbeat me-1"></i>
+                    Health Check
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header Stats -->
+    <section class="header-stats py-4">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <h3 class="mb-1">{{totalConfigs}}</h3>
+                        <p class="mb-0">Tổng số Projects</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <h3 class="mb-1 text-success">{{enabledConfigs}}</h3>
+                        <p class="mb-0">Đang hoạt động</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <h3 class="mb-1 text-warning">0</h3>
+                        <p class="mb-0">Đã tắt</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <button class="btn btn-light" data-bs-toggle="modal" data-bs-target="#addConfigModal">
+                            <i class="fas fa-plus me-2"></i>
+                            Thêm Project
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>
+                        <i class="fas fa-cogs me-2"></i>
+                        Quản lý cấu hình Proxy
+                    </h2>
+                    <div>
+                        <button class="btn btn-outline-primary me-2" onclick="refreshConfigs()">
+                            <i class="fas fa-sync-alt me-1"></i>
+                            Làm mới
+                        </button>
+                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addConfigModal">
+                            <i class="fas fa-plus me-1"></i>
+                            Thêm mới
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Configs List -->
+                <div id="configsList" class="row">
+                    {{#each configs}}
+                    <div class="col-lg-6 col-xl-4 mb-4">
+                        <div class="card config-card {{#if enabled}}enabled{{else}}disabled{{/if}}">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">
+                                    <span class="status-indicator {{#if enabled}}status-enabled{{else}}status-disabled{{/if}} me-2"></span>
+                                    {{projectName}}
+                                </h6>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="#" onclick="editConfig('{{projectName}}')"><i class="fas fa-edit me-2"></i>Chỉnh sửa</a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="toggleConfig('{{projectName}}')"><i class="fas fa-power-off me-2"></i>{{#if enabled}}Tắt{{else}}Bật{{/if}}</a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="testConnection('{{projectName}}')"><i class="fas fa-plug me-2"></i>Test kết nối</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item text-danger" href="#" onclick="deleteConfig('{{projectName}}')"><i class="fas fa-trash me-2"></i>Xóa</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted small mb-2">{{description}}</p>
+                                <div class="mb-2">
+                                    <strong>Target:</strong> 
+                                    <code>{{target.protocol}}://{{target.host}}:{{target.port}}</code>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Proxy URL:</strong> 
+                                    <code>/proxy/{{projectName}}</code>
+                                </div>
+                                {{#if customHeaders}}
+                                <div class="mb-2">
+                                    <strong>Custom Headers:</strong>
+                                    <div class="small">
+                                        {{#each customHeaders}}
+                                        <span class="badge bg-secondary me-1">{{@key}}</span>
+                                        {{/each}}
+                                    </div>
+                                </div>
+                                {{/if}}
+                                <div class="d-flex justify-content-between align-items-center mt-3">
+                                    <small class="text-muted">
+                                        Cập nhật: {{updatedAt}}
+                                    </small>
+                                    <div>
+                                        <button class="btn btn-sm btn-outline-primary me-1" onclick="testConnection('{{projectName}}')"
+                                                id="testBtn-{{projectName}}">
+                                            <i class="fas fa-plug"></i>
+                                        </button>
+                                        <button class="btn btn-sm {{#if enabled}}btn-warning{{else}}btn-success{{/if}}" 
+                                                onclick="toggleConfig('{{projectName}}')">
+                                            <i class="fas {{#if enabled}}fa-pause{{else}}fa-play{{/if}}"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {{/each}}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Config Modal -->
+    <div class="modal fade" id="addConfigModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">
+                        <i class="fas fa-plus me-2"></i>
+                        Thêm cấu hình mới
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="configForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="projectName" class="form-label">Tên Project *</label>
+                                    <input type="text" class="form-control" id="projectName" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">Mô tả</label>
+                                    <input type="text" class="form-control" id="description">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label for="targetHost" class="form-label">Target Host *</label>
+                                    <input type="text" class="form-control" id="targetHost" required placeholder="localhost">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="targetPort" class="form-label">Target Port *</label>
+                                    <input type="number" class="form-control" id="targetPort" required min="1" max="65535">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Custom Headers</label>
+                            <div id="headersContainer">
+                                <div class="row mb-2 header-row">
+                                    <div class="col-5">
+                                        <input type="text" class="form-control header-key" placeholder="Header name">
+                                    </div>
+                                    <div class="col-5">
+                                        <input type="text" class="form-control header-value" placeholder="Header value">
+                                    </div>
+                                    <div class="col-2">
+                                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeHeaderRow(this)">
+                                            <i class="fas fa-minus"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="addHeaderRow()">
+                                <i class="fas fa-plus me-1"></i>
+                                Thêm header
+                            </button>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="enabled" checked>
+                                <label class="form-check-label" for="enabled">
+                                    Kích hoạt ngay
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary" onclick="saveConfig()" id="saveBtn">
+                        <i class="fas fa-save me-1"></i>
+                        Lưu
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let isEditMode = false;
+        let editingProject = null;
+
+        // Toast helper
+        function showToast(message, type = 'success') {
+            const toastHtml = `
+                <div class="toast align-items-center text-white bg-${type} border-0" role="alert">
+                    <div class="d-flex">
+                        <div class="toast-body">${message}</div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+            const toastContainer = document.getElementById('toastContainer');
+            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+            const toastElement = toastContainer.lastElementChild;
+            const toast = new bootstrap.Toast(toastElement);
+            toast.show();
+            
+            // Remove toast element after it's hidden
+            toastElement.addEventListener('hidden.bs.toast', () => {
+                toastElement.remove();
+            });
+        }
+
+        // Add header row
+        function addHeaderRow() {
+            const container = document.getElementById('headersContainer');
+            const newRow = document.createElement('div');
+            newRow.className = 'row mb-2 header-row';
+            newRow.innerHTML = `
+                <div class="col-5">
+                    <input type="text" class="form-control header-key" placeholder="Header name">
+                </div>
+                <div class="col-5">
+                    <input type="text" class="form-control header-value" placeholder="Header value">
+                </div>
+                <div class="col-2">
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeHeaderRow(this)">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                </div>
+            `;
+            container.appendChild(newRow);
+        }
+
+        // Remove header row
+        function removeHeaderRow(button) {
+            button.closest('.header-row').remove();
+        }
+
+        // Collect headers from form
+        function collectHeaders() {
+            const headers = {};
+            const headerRows = document.querySelectorAll('.header-row');
+            headerRows.forEach(row => {
+                const key = row.querySelector('.header-key').value.trim();
+                const value = row.querySelector('.header-value').value.trim();
+                if (key && value) {
+                    headers[key] = value;
+                }
+            });
+            return headers;
+        }
+
+        // Save config
+        async function saveConfig() {
+            const form = document.getElementById('configForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const saveBtn = document.getElementById('saveBtn');
+            const originalText = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang lưu...';
+            saveBtn.disabled = true;
+
+            const data = {
+                projectName: document.getElementById('projectName').value,
+                description: document.getElementById('description').value,
+                targetHost: document.getElementById('targetHost').value,
+                targetPort: parseInt(document.getElementById('targetPort').value),
+                customHeaders: collectHeaders(),
+                enabled: document.getElementById('enabled').checked
+            };
+
+            try {
+                const url = isEditMode ? `/admin/api/configs/${editingProject}` : '/admin/api/configs';
+                const method = isEditMode ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showToast(result.message, 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('addConfigModal')).hide();
+                    refreshConfigs();
+                } else {
+                    showToast(result.message || 'Có lỗi xảy ra', 'danger');
+                }
+            } catch (error) {
+                showToast('Lỗi kết nối: ' + error.message, 'danger');
+            } finally {
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+            }
+        }
+
+        // Edit config
+        async function editConfig(projectName) {
+            try {
+                const response = await fetch(`/admin/api/configs/${projectName}`);
+                const result = await response.json();
+                
+                if (response.ok) {
+                    const config = result.data;
+                    
+                    // Set form values
+                    document.getElementById('projectName').value = config.projectName;
+                    document.getElementById('description').value = config.description || '';
+                    document.getElementById('targetHost').value = config.target.host;
+                    document.getElementById('targetPort').value = config.target.port;
+                    document.getElementById('enabled').checked = config.enabled;
+                    
+                    // Clear and populate headers
+                    const container = document.getElementById('headersContainer');
+                    container.innerHTML = '';
+                    
+                    Object.entries(config.customHeaders || {}).forEach(([key, value]) => {
+                        addHeaderRow();
+                        const lastRow = container.lastElementChild;
+                        lastRow.querySelector('.header-key').value = key;
+                        lastRow.querySelector('.header-value').value = value;
+                    });
+                    
+                    if (container.children.length === 0) {
+                        addHeaderRow();
+                    }
+                    
+                    // Set edit mode
+                    isEditMode = true;
+                    editingProject = projectName;
+                    document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit me-2"></i>Chỉnh sửa cấu hình';
+                    document.getElementById('saveBtn').innerHTML = '<i class="fas fa-save me-1"></i>Cập nhật';
+                    
+                    // Show modal
+                    new bootstrap.Modal(document.getElementById('addConfigModal')).show();
+                } else {
+                    showToast(result.message || 'Không thể tải cấu hình', 'danger');
+                }
+            } catch (error) {
+                showToast('Lỗi kết nối: ' + error.message, 'danger');
+            }
+        }
+
+        // Toggle config
+        async function toggleConfig(projectName) {
+            try {
+                const response = await fetch(`/admin/api/configs/${projectName}/toggle`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showToast(result.message, 'success');
+                    refreshConfigs();
+                } else {
+                    showToast(result.message || 'Có lỗi xảy ra', 'danger');
+                }
+            } catch (error) {
+                showToast('Lỗi kết nối: ' + error.message, 'danger');
+            }
+        }
+
+        // Delete config
+        async function deleteConfig(projectName) {
+            if (!confirm(`Bạn có chắc chắn muốn xóa cấu hình cho project "${projectName}"?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/admin/api/configs/${projectName}`, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showToast(result.message, 'success');
+                    refreshConfigs();
+                } else {
+                    showToast(result.message || 'Có lỗi xảy ra', 'danger');
+                }
+            } catch (error) {
+                showToast('Lỗi kết nối: ' + error.message, 'danger');
+            }
+        }
+
+        // Test connection
+        async function testConnection(projectName) {
+            const testBtn = document.getElementById(`testBtn-${projectName}`);
+            const originalHtml = testBtn.innerHTML;
+            testBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+            testBtn.disabled = true;
+            
+            try {
+                const response = await fetch(`/admin/api/configs/${projectName}/test`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                
+                const type = result.success ? 'success' : 'warning';
+                const message = result.responseTime ? 
+                    `${result.message} (${result.responseTime}ms)` : 
+                    result.message;
+                    
+                showToast(message, type);
+            } catch (error) {
+                showToast('Lỗi kết nối: ' + error.message, 'danger');
+            } finally {
+                testBtn.innerHTML = originalHtml;
+                testBtn.disabled = false;
+            }
+        }
+
+        // Refresh configs
+        function refreshConfigs() {
+            location.reload();
+        }
+
+        // Reset modal when hidden
+        document.getElementById('addConfigModal').addEventListener('hidden.bs.modal', function () {
+            isEditMode = false;
+            editingProject = null;
+            document.getElementById('modalTitle').innerHTML = '<i class="fas fa-plus me-2"></i>Thêm cấu hình mới';
+            document.getElementById('saveBtn').innerHTML = '<i class="fas fa-save me-1"></i>Lưu';
+            document.getElementById('configForm').reset();
+            
+            // Reset headers
+            const container = document.getElementById('headersContainer');
+            container.innerHTML = '';
+            addHeaderRow();
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add initial header row
+            if (document.getElementById('headersContainer').children.length === 0) {
+                addHeaderRow();
+            }
+        });
+    </script>
+</body>
+</html>

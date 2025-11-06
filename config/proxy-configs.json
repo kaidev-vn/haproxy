@@ -1,0 +1,71 @@
+{
+  "configs": [
+    {
+      "id": "api-gateway-001",
+      "projectName": "api-gateway",
+      "targetHost": "localhost",
+      "targetPort": 8080,
+      "customHeaders": {
+        "X-Forwarded-By": "nestjs-proxy",
+        "X-Project": "api-gateway"
+      },
+      "enabled": true,
+      "description": "API Gateway Service",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "173a3845-0e54-4193-a110-4afc6256d88e",
+      "projectName": "techres-invoice",
+      "targetHost": "172.16.10.218",
+      "targetPort": 30080,
+      "customHeaders": {
+        "Host": "beta.nestjs-system-invoice.k8s"
+      },
+      "enabled": true,
+      "description": "TechRes Invoice Service",
+      "createdAt": "2025-09-12T03:13:34.875Z",
+      "updatedAt": "2025-10-18T03:36:52.811Z"
+    },
+    {
+      "id": "7516392b-4ec2-41b0-8d96-d1001ecf3e09",
+      "projectName": "techres-invoice-grpc",
+      "targetHost": "172.16.10.218",
+      "targetPort": 30080,
+      "customHeaders": {
+        "Host": "beta.nestjs-system-invoce.k8s",
+        "Port": "9000"
+      },
+      "enabled": true,
+      "description": "TechRes Invoice Service GRPC",
+      "createdAt": "2025-09-18T10:43:44.739Z",
+      "updatedAt": "2025-10-15T04:21:34.845Z"
+    },
+    {
+      "id": "4c6b38cf-6704-4f91-9f0b-cae865498dd6",
+      "projectName": "nodejs-msh-accounting",
+      "targetHost": "172.16.10.218",
+      "targetPort": 30080,
+      "customHeaders": {
+        "Host": "beta.nodejs-msh-accounting.k8s"
+      },
+      "enabled": true,
+      "description": "",
+      "createdAt": "2025-10-18T04:58:28.081Z",
+      "updatedAt": "2025-10-18T04:58:28.081Z"
+    },
+    {
+      "id": "f1fc77c4-3c58-4e60-832d-dfbe609e4097",
+      "projectName": "daihy-asset",
+      "targetHost": "172.16.10.218",
+      "targetPort": 30080,
+      "customHeaders": {
+        "Host": "beta.nodejs-zoodoo-asset-management.k8s"
+      },
+      "enabled": true,
+      "description": "daihy_asset",
+      "createdAt": "2025-10-25T02:13:32.270Z",
+      "updatedAt": "2025-10-25T02:15:49.805Z"
+    }
+  ]
+}
